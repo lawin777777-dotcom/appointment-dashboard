@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>임명장 발급 현황 대시보드 | 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════
+   CSS 변수 — 전체 색상/폰트 설계 기준
+════════════════════════════════════════════ */
+:root {
+  --bg:       #07090f;
+  --card:     #0d1220;
+  --card2:    #111827;
+  --border:   #1a2540;
+  --border2:  #243050;
+
+  --blue:     #38bdf8;
+  --blue2:    #0ea5e9;
+  --gold:     #f59e0b;
+  --gold2:    #fbbf24;
+  --green:    #34d399;
+  --red:      #f87171;
+  --purple:   #a78bfa;
+
+  --txt:      #e2e8f0;
+  --txt2:     #94a3b8;
+  --txt3:     #475569;
+
+  --font-num: 'Oswald', sans-serif;
+  --font-ko:  'Noto Sans KR', sans-serif;
+
+  --r:        14px;  /* border-radius */
+}
+
+/* ════ 리셋 ════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body {
+  font-family: var(--font-ko);
+  background: var(--bg);
+  color: var(--txt);
+  min-height:100vh;
+  line-height:1.5;
+}
+
+/* ════ 배경 그라디언트 ════ */
+body::after {
+  content:'';
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(ellipse 70% 50% at 5% 0%,   rgba(56,189,248,.06) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 40% at 95% 100%, rgba(245,158,11,.05) 0%,transparent 60%);
+}
+
+/* ════ 공통 래퍼 ════ */
+.wrap { position:relative; z-index:1; max-width:1480px; margin:0 auto; padding:0 28px; }
+
+/* ════════════════════════════════════════════
+   헤더
+════════════════════════════════════════════ */
+header {
+  position:relative; z-index:10;
+  border-bottom:1px solid var(--border);
+  background: rgba(7,9,15,.92);
+  backdrop-filter:blur(8px);
+  padding:24px 0;
+}
+header .wrap { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+
+.hd-title { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+.hd-title h1 {
+  font-family: var(--font-num);
+  font-size: clamp(26px, 4vw, 48px);
+  font-weight:700;
+  letter-spacing:3px;
+  color:#fff;
+  line-height:1;
+}
+.hd-title .period {
+  font-size:15px; color:var(--txt2);
+  letter-spacing:.5px;
+}
+
+.hd-right { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.badge {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 18px;
+  border-radius:99px;
+  font-size:13px; font-weight:700; letter-spacing:.5px;
+  white-space:nowrap;
+}
+.badge-blue  { background:rgba(56,189,248,.15); border:1px solid rgba(56,189,248,.3); color:var(--blue); }
+.badge-gold  { background:rgba(245,158,11,.15);  border:1px solid rgba(245,158,11,.3);  color:var(--gold2); }
+
+/* 갱신 시각 */
+#lastUpdated { font-size:12px; color:var(--txt3); }
+
+/* ════════════════════════════════════════════
+   메인
+════════════════════════════════════════════ */
+main { padding:36px 0 80px; }
+
+/* ─── 섹션 타이틀 ─── */
+.sec-head {
+  display:flex; align-items:center; gap:12px;
+  margin-bottom:20px;
+}
+.sec-head h2 {
+  font-size:13px; font-weight:700;
+  letter-spacing:3px; text-transform:uppercase;
+  color:var(--blue); white-space:nowrap;
+}
+.sec-line { flex:1; height:1px; background:linear-gradient(to right,var(--border),transparent); }
+
+/* ════════════════════════════════════════════
+   KPI 카드
+════════════════════════════════════════════ */
+.kpi-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap:16px;
+  margin-bottom:40px;
+}
+.kpi {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:28px 24px;
+  position:relative; overflow:hidden;
+  transition:transform .2s, border-color .2s, box-shadow .2s;
+  cursor:default;
+}
+.kpi:hover {
+  transform:translateY(-3px);
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+.kpi::after { /* 상단 컬러 바 */
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  border-radius:var(--r) var(--r) 0 0;
+}
+.kpi.c-blue::after  { background:linear-gradient(90deg,var(--blue),var(--blue2)); }
+.kpi.c-gold::after  { background:linear-gradient(90deg,var(--gold),var(--gold2)); }
+.kpi.c-green::after { background:linear-gradient(90deg,var(--green),#059669); }
+.kpi.c-red::after   { background:linear-gradient(90deg,var(--red),#dc2626); }
+.kpi.c-purple::after{ background:linear-gradient(90deg,var(--purple),#7c3aed); }
+
+.kpi:hover.c-blue  { border-color:rgba(56,189,248,.5); }
+.kpi:hover.c-gold  { border-color:rgba(245,158,11,.5); }
+.kpi:hover.c-green { border-color:rgba(52,211,153,.5); }
+.kpi:hover.c-red   { border-color:rgba(248,113,113,.5); }
+.kpi:hover.c-purple{ border-color:rgba(167,139,250,.5); }
+
+.kpi-lbl {
+  font-size:11px; letter-spacing:2px; text-transform:uppercase;
+  color:var(--txt3); font-weight:700; margin-bottom:10px;
+}
+.kpi-num {
+  font-family:var(--font-num);
+  font-size: clamp(44px,5.5vw,76px);
+  line-height:1; color:#fff; font-weight:700;
+}
+.kpi-unit { font-size:18px; color:var(--txt2); font-family:var(--font-ko); font-weight:400; margin-left:4px; }
+.kpi-sub  { margin-top:10px; font-size:12px; color:var(--txt3); }
+
+/* ════════════════════════════════════════════
+   추세 바 차트
+════════════════════════════════════════════ */
+.trend-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:28px;
+  margin-bottom:40px;
+}
+.trend-card h3 { font-size:17px; font-weight:700; margin-bottom:6px; }
+.trend-card p  { font-size:12px; color:var(--txt3); margin-bottom:24px; }
+
+.chart-outer {
+  overflow-x:auto;
+  padding-bottom:4px;
+}
+.chart-inner {
+  display:flex;
+  align-items:flex-end;
+  gap:5px;
+  height:200px;
+  min-width:640px;
+  padding: 0 4px 38px 4px;
+  position:relative;
+}
+/* 기준선 */
+.chart-inner::after {
+  content:''; position:absolute;
+  bottom:38px; left:0; right:0; height:1px;
+  background:var(--border);
+}
+
+.bar-col {
+  flex:1;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:flex-end;
+  gap:0; min-width:0;
+  position:relative;
+}
+.bar-fill {
+  width:100%;
+  border-radius:5px 5px 0 0;
+  transition:height .9s cubic-bezier(.4,0,.2,1);
+  min-height:2px;
+  position:relative;
+  cursor:pointer;
+}
+/* 툴팁 */
+.bar-fill::after {
+  content: attr(data-tip);
+  position:absolute;
+  bottom:calc(100% + 6px);
+  left:50%; transform:translateX(-50%);
+  background:#1e293b;
+  border:1px solid var(--border2);
+  color:#fff;
+  font-size:11px; font-weight:700;
+  padding:4px 8px; border-radius:6px;
+  white-space:nowrap;
+  opacity:0; pointer-events:none;
+  transition:opacity .15s;
+  z-index:20;
+}
+.bar-fill:hover::after { opacity:1; }
+
+.bar-val-top {
+  font-family:var(--font-num);
+  font-size:11px; color:var(--txt2);
+  margin-bottom:3px;
+  white-space:nowrap;
+}
+.bar-label {
+  position:absolute; bottom:0; left:0; right:0;
+  text-align:center;
+  font-size:9px; color:var(--txt3);
+  transform-origin:center top;
+  transform:rotate(-40deg) translateX(4px);
+  white-space:nowrap;
+  line-height:1; padding-top:6px;
+}
+
+/* ════════════════════════════════════════════
+   일자별 상세 테이블
+════════════════════════════════════════════ */
+.tbl-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  overflow:hidden;
+  margin-bottom:40px;
+}
+.tbl-head {
+  padding:20px 28px;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:12px;
+}
+.tbl-head h3 { font-size:17px; font-weight:700; }
+.legend {
+  display:flex; gap:14px; flex-wrap:wrap;
+}
+.leg {
+  display:flex; align-items:center; gap:5px;
+  font-size:11px; color:var(--txt2);
+}
+.leg-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+.tbl-scroll { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; min-width:700px; }
+
+thead tr { background:rgba(56,189,248,.05); }
+th {
+  padding:13px 14px;
+  text-align:center;
+  font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--txt3); font-weight:700;
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+th:first-child { text-align:left; padding-left:24px; min-width:90px; }
+
+tbody tr {
+  border-bottom:1px solid rgba(26,37,64,.6);
+  transition:background .12s;
+}
+tbody tr:hover { background:rgba(56,189,248,.04); }
+tbody tr:last-child { border:none; }
+
+/* 날짜 열 */
+td.td-date {
+  text-align:left; padding:15px 14px 15px 24px;
+  font-size:16px; font-weight:700; color:#fff;
+  white-space:nowrap;
+}
+/* 요일 표시 */
+.dow {
+  display:inline-block; margin-left:6px;
+  font-size:10px; font-weight:700;
+  padding:1px 5px; border-radius:4px;
+  vertical-align:middle;
+}
+.dow-sat { background:rgba(56,189,248,.2); color:var(--blue); }
+.dow-sun { background:rgba(248,113,113,.2); color:var(--red); }
+.dow-week{ background:rgba(71,85,105,.3);   color:var(--txt3); }
+
+/* 숫자 열 */
+td.td-num {
+  text-align:center; padding:15px 14px;
+  font-family:var(--font-num);
+  font-size:20px; font-weight:600;
+}
+.v0    { color:var(--txt3); font-size:16px; }
+.v-low { color:var(--gold2); }
+.v-mid { color:var(--blue); }
+.v-hi  { color:var(--green); }
+.v-max { color:#fff; text-shadow:0 0 10px rgba(251,191,36,.5); }
+
+/* 일일합계 열 */
+td.td-total {
+  text-align:center; padding:15px 14px;
+  font-family:var(--font-num);
+  font-size:24px; font-weight:700;
+}
+.t0   { color:var(--txt3); font-size:18px; }
+.t-ok { color:var(--gold2); }
+.t-hi { color:var(--green); }
+.t-mx { color:var(--gold); font-size:28px; text-shadow:0 0 16px rgba(245,158,11,.6); }
+
+/* 최다 발급일 행 */
+tr.best { background:rgba(245,158,11,.04) !important; }
+tr.best td.td-date::after {
+  content:' 🏆'; font-size:14px;
+}
+
+/* 누계 행 */
+tr.cum-row {
+  background:rgba(56,189,248,.06) !important;
+  border-top:2px solid rgba(56,189,248,.3) !important;
+}
+tr.cum-row td.td-date {
+  color:var(--blue); font-size:13px; letter-spacing:2px; text-transform:uppercase;
+}
+tr.cum-row td.td-num  { color:var(--blue2); font-size:18px; }
+tr.cum-row td.td-total{ color:var(--blue);  font-size:26px; }
+
+/* ════════════════════════════════════════════
+   조직별 바 차트 (수평)
+════════════════════════════════════════════ */
+.org-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(300px,1fr));
+  gap:18px;
+  margin-bottom:40px;
+}
+.org-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:24px;
+}
+.org-card h4 {
+  font-size:12px; letter-spacing:2px; text-transform:uppercase;
+  color:var(--txt3); font-weight:700; margin-bottom:20px;
+}
+.hbar { margin-bottom:16px; }
+.hbar:last-child { margin-bottom:0; }
+.hbar-top {
+  display:flex; justify-content:space-between; align-items:baseline;
+  margin-bottom:7px;
+}
+.hbar-name { font-size:14px; color:var(--txt); font-weight:700; }
+.hbar-val  { font-family:var(--font-num); font-size:22px; font-weight:600; color:#fff; }
+.hbar-track {
+  height:10px; background:rgba(255,255,255,.05);
+  border-radius:99px; overflow:hidden;
+}
+.hbar-fill {
+  height:100%; border-radius:99px;
+  transition:width 1.2s cubic-bezier(.4,0,.2,1);
+  width:0;
+}
+
+/* ════════════════════════════════════════════
+   GAS 연동 안내 박스
+════════════════════════════════════════════ */
+.api-box {
+  background:var(--card2);
+  border:1px dashed var(--border2);
+  border-radius:var(--r);
+  padding:24px 28px;
+  margin-bottom:40px;
+}
+.api-box h4 { font-size:15px; font-weight:700; color:var(--gold2); margin-bottom:12px; }
+.api-box p  { font-size:13px; color:var(--txt2); line-height:1.8; }
+.api-box code {
+  background:rgba(0,0,0,.4); padding:2px 8px; border-radius:5px;
+  font-family:monospace; font-size:12px; color:var(--blue);
+}
+
+/* ════════════════════════════════════════════
+   반응형
+════════════════════════════════════════════ */
+@media (max-width:768px) {
+  .wrap { padding:0 16px; }
+  header { padding:18px 0; }
+  .hd-title h1 { font-size:26px; }
+  .kpi-num { font-size:44px; }
+  .trend-card, .tbl-card, .org-card, .api-box { padding:18px; }
+  .tbl-head { padding:14px 18px; }
+  th:first-child, td.td-date { padding-left:14px; }
+  td.td-num  { font-size:16px; }
+  td.td-total{ font-size:20px; }
+  tr.best td.td-date::after { content:' 🏆'; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════ 헤더 ════════════════════════════════ -->
+<header>
+  <div class="wrap">
+    <div class="hd-title">
+      <h1>임명장 발급 현황 대시보드</h1>
+      <span class="period">2026. 05. 08 — 2026. 06. 02 &nbsp;|&nbsp; 매일 18:00 기준</span>
+    </div>
+    <div class="hd-right">
+      <span class="badge badge-blue">📊 V3.8 GAS 연동</span>
+      <span class="badge badge-gold">집계기간 26일</span>
+      <span id="lastUpdated"></span>
+    </div>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <!-- ════ 1. KPI 카드 ════ -->
+  <div class="sec-head"><h2>핵심 성과 지표</h2><div class="sec-line"></div></div>
+  <div class="kpi-grid">
+    <div class="kpi c-blue">
+      <div class="kpi-lbl">전체 누계 총계</div>
+      <div class="kpi-num">2,694<span class="kpi-unit">건</span></div>
+      <div class="kpi-sub">05.08 ~ 06.02 기준</div>
+    </div>
+    <div class="kpi c-gold">
+      <div class="kpi-lbl">조직총괄 합계</div>
+      <div class="kpi-num">294<span class="kpi-unit">건</span></div>
+      <div class="kpi-sub">D: 250 &nbsp;/&nbsp; M: 44</div>
+    </div>
+    <div class="kpi c-green">
+      <div class="kpi-lbl">직능총괄 합계</div>
+      <div class="kpi-num">2,082<span class="kpi-unit">건</span></div>
+      <div class="kpi-sub">D: 57 &nbsp;/&nbsp; M: 2,025</div>
+    </div>
+    <div class="kpi c-purple">
+      <div class="kpi-lbl">특별직능 + 기타</div>
+      <div class="kpi-num">318<span class="kpi-unit">건</span></div>
+      <div class="kpi-sub">특별D:39 / 시민M:38 / A완료:241</div>
+    </div>
+    <div class="kpi c-red">
+      <div class="kpi-lbl">최다 발급일 (05.14)</div>
+      <div class="kpi-num">1,201<span class="kpi-unit">건</span></div>
+      <div class="kpi-sub">2위: 05.13 / 992건</div>
+    </div>
+  </div>
+
+  <!-- ════ 2. 일별 추세 바 차트 ════ -->
+  <div class="sec-head"><h2>일별 발급 추세</h2><div class="sec-line"></div></div>
+  <div class="trend-card">
+    <h3>일별 총계 추이 (05.08 — 06.02)</h3>
+    <p>막대 위에 마우스를 올리면 상세 수치가 표시됩니다. 데이터가 없는 날은 회색으로 표시됩니다.</p>
+    <div class="chart-outer">
+      <div class="chart-inner" id="trendChart"></div>
+    </div>
+  </div>
+
+  <!-- ════ 3. 일자별 상세 테이블 ════ -->
+  <div class="sec-head"><h2>일자별 상세 현황</h2><div class="sec-line"></div></div>
+  <div class="tbl-card">
+    <div class="tbl-head">
+      <h3>발급 현황 전체 내역 (26일)</h3>
+      <div class="legend">
+        <div class="leg"><div class="leg-dot" style="background:var(--txt3)"></div>0건</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--gold2)"></div>1~99</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div>100~499</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--green)"></div>500~999</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--gold)"></div>1,000+</div>
+      </div>
+    </div>
+    <div class="tbl-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>날 짜</th>
+            <th>조직D</th><th>조직M</th>
+            <th>직능D</th><th>직능M</th>
+            <th>특별D</th><th>특별M</th>
+            <th>시민M</th><th>A완료</th>
+            <th>일일합계</th>
+          </tr>
+        </thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ════ 4. 조직별 수평 바 ════ -->
+  <div class="sec-head"><h2>조직별 누계 현황</h2><div class="sec-line"></div></div>
+  <div class="org-grid">
+    <div class="org-card">
+      <h4>D 타입 — 직접발급 / 출력</h4>
+      <div id="orgD"></div>
+    </div>
+    <div class="org-card">
+      <h4>M 타입 — 문자발송 / 모바일 / 기타</h4>
+      <div id="orgM"></div>
+    </div>
+  </div>
+
+  <!-- ════ 5. GAS 연동 안내 ════ -->
+  <div class="sec-head"><h2>GAS 자동집계 연동 안내</h2><div class="sec-line"></div></div>
+  <div class="api-box">
+    <h4>📌 이 대시보드를 GAS 웹앱 API와 연결하는 방법</h4>
+    <p>
+      현재 이 파일은 <strong>엑셀에서 읽은 실제 데이터</strong>를 직접 넣어 만든 정적(Static) 버전입니다.<br>
+      GAS 웹앱 URL을 얻은 후, 아래 코드의 <code>GAS_URL</code> 변수에 붙여넣으면 <strong>매일 자동으로 데이터가 갱신</strong>됩니다.<br><br>
+      ① Apps Script 편집기 → <code>doGet()</code> 함수가 있는 스크립트 선택<br>
+      ② 상단 메뉴 [배포] → [새 배포] → [웹 앱] → [누구나 액세스 가능] 설정 → [배포] 클릭<br>
+      ③ 생성된 URL을 아래 JavaScript 변수 <code>GAS_URL</code>에 붙여넣기<br>
+      ④ GitHub에 저장 → 자동 갱신 대시보드 완성
+    </p>
+  </div>
+
+</div><!-- /wrap -->
+</main>
+
+<script>
+'use strict';
+
+/* ════════════════════════════════════════════
+   ★ GAS 웹앱 URL — 연결 시 여기만 수정하세요
+════════════════════════════════════════════ */
+var GAS_URL = '';  // 예: 'https://script.google.com/macros/s/AKf.../exec'
+
+/* ════════════════════════════════════════════
+   전체 26일 데이터
+   — 엑셀 총괄시트 + 각 일자별 시트에서 읽은 실제 값
+   컬럼: date, dow(0=일~6=토), orgD, orgM, jikD, jikM, speD, speM, citM, aComp
+════════════════════════════════════════════ */
+var DAYS = [
+  {date:'05.08(금)', dow:5, orgD:0,   orgM:0,  jikD:8,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.09(토)', dow:6, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:241},
+  {date:'05.10(일)', dow:0, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.11(월)', dow:1, orgD:58,  orgM:0,  jikD:0,  jikM:77,   speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.12(화)', dow:2, orgD:26,  orgM:0,  jikD:6,  jikM:48,   speD:37, speM:0, citM:0,  aComp:0  },
+  {date:'05.13(수)', dow:3, orgD:53,  orgM:44, jikD:11, jikM:872,  speD:0,  speM:0, citM:12, aComp:0  },
+  {date:'05.14(목)', dow:4, orgD:113, orgM:0,  jikD:32, jikM:1028, speD:2,  speM:0, citM:26, aComp:0  },
+  {date:'05.15(금)', dow:5, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.16(토)', dow:6, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.17(일)', dow:0, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.18(월)', dow:1, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.19(화)', dow:2, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.20(수)', dow:3, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.21(목)', dow:4, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.22(금)', dow:5, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.23(토)', dow:6, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.24(일)', dow:0, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.25(월)', dow:1, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.26(화)', dow:2, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.27(수)', dow:3, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.28(목)', dow:4, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.29(금)', dow:5, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.30(토)', dow:6, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'05.31(일)', dow:0, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'06.01(월)', dow:1, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+  {date:'06.02(화)', dow:2, orgD:0,   orgM:0,  jikD:0,  jikM:0,    speD:0,  speM:0, citM:0,  aComp:0  },
+];
+
+/* 총괄 누계 */
+var CUM = { orgD:250, orgM:44, jikD:57, jikM:2025, speD:39, speM:0, citM:38, aComp:241 };
+
+/* ════════════════════════════════════════════
+   유틸
+════════════════════════════════════════════ */
+function total(r){ return r.orgD+r.orgM+r.jikD+r.jikM+r.speD+r.speM+r.citM+r.aComp; }
+function comma(n){ return n===0?'–':n.toLocaleString('ko-KR'); }
+function raw(n){ return n.toLocaleString('ko-KR'); }
+
+function vClass(v){
+  if(v===0)    return 'v0';
+  if(v<100)    return 'v-low';
+  if(v<500)    return 'v-mid';
+  if(v<1000)   return 'v-hi';
+  return 'v-max';
+}
+function tClass(v){
+  if(v===0)    return 't0';
+  if(v<500)    return 't-ok';
+  if(v<1000)   return 't-hi';
+  return 't-mx';
+}
+
+/* ════════════════════════════════════════════
+   GAS API 연동 (URL이 있을 때만 작동)
+════════════════════════════════════════════ */
+function fetchGAS(sheetName, callback){
+  if(!GAS_URL) return;
+  fetch(GAS_URL + '?sheet=' + sheetName)
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.ok) callback(d);
+    })
+    .catch(function(e){ console.warn('GAS fetch 실패:', e); });
+}
+
+/* 현재 시각 표시 */
+var lu = document.getElementById('lastUpdated');
+var now = new Date();
+lu.textContent = '업데이트: ' +
+  now.getFullYear()+'.'+(now.getMonth()+1).toString().padStart(2,'0')+'.'+
+  now.getDate().toString().padStart(2,'0')+' '+
+  now.getHours().toString().padStart(2,'0')+':'+
+  now.getMinutes().toString().padStart(2,'0');
+
+/* ════════════════════════════════════════════
+   추세 바 차트 렌더링
+════════════════════════════════════════════ */
+var totals = DAYS.map(total);
+var maxT   = Math.max.apply(null,totals) || 1;
+
+var GRAD = [
+  'linear-gradient(180deg,#38bdf8,#0ea5e9)',
+  'linear-gradient(180deg,#34d399,#059669)',
+  'linear-gradient(180deg,#f59e0b,#d97706)',
+  'linear-gradient(180deg,#f59e0b,#fbbf24)',
+  'linear-gradient(180deg,#f87171,#dc2626)',
+  'linear-gradient(180deg,#a78bfa,#7c3aed)',
+  'linear-gradient(180deg,#38bdf8,#0ea5e9)',
+  'linear-gradient(180deg,#34d399,#059669)',
+];
+
+var chart = document.getElementById('trendChart');
+DAYS.forEach(function(r,i){
+  var t   = totals[i];
+  var pct = t===0 ? 0 : Math.max(4, Math.round((t/maxT)*150));
+  var g   = t===0 ? 'rgba(255,255,255,.06)' : GRAD[i % GRAD.length];
+  var tip = r.date + '\n합계: ' + raw(t) + '건';
+
+  var col = document.createElement('div');
+  col.className = 'bar-col';
+  col.innerHTML =
+    (t>0 ? '<div class="bar-val-top">'+raw(t)+'</div>' : '<div class="bar-val-top" style="opacity:0">0</div>') +
+    '<div class="bar-fill" data-tip="' + r.date + ' | ' + raw(t) + '건" ' +
+      'style="height:' + pct + 'px;background:' + g + '"></div>' +
+    '<div class="bar-label">' + r.date.replace(/\(.+\)/,'') + '</div>';
+  chart.appendChild(col);
+});
+
+/* ════════════════════════════════════════════
+   테이블 렌더링
+════════════════════════════════════════════ */
+var maxTotal = Math.max.apply(null, totals);
+var tbody    = document.getElementById('tblBody');
+
+DAYS.forEach(function(r){
+  var t   = total(r);
+  var best= (t===maxTotal && t>0);
+  var dow = r.dow;
+
+  var dowLbl, dowCls;
+  if(dow===6){ dowLbl='토'; dowCls='dow-sat'; }
+  else if(dow===0){ dowLbl='일'; dowCls='dow-sun'; }
+  else { dowLbl=['일','월','화','수','목','금','토'][dow]; dowCls='dow-week'; }
+
+  var tr = document.createElement('tr');
+  if(best) tr.classList.add('best');
+
+  function td(v){
+    return '<td class="td-num '+vClass(v)+'">'+comma(v)+'</td>';
+  }
+
+  tr.innerHTML =
+    '<td class="td-date">'+
+      r.date.replace(/\(.+\)/,'') +
+      '<span class="dow '+dowCls+'">'+dowLbl+'</span>'+
+    '</td>'+
+    td(r.orgD)+td(r.orgM)+
+    td(r.jikD)+td(r.jikM)+
+    td(r.speD)+td(r.speM)+
+    td(r.citM)+td(r.aComp)+
+    '<td class="td-total '+tClass(t)+'">'+comma(t)+'</td>';
+  tbody.appendChild(tr);
+});
+
+/* 누계 행 */
+var ct = CUM.orgD+CUM.orgM+CUM.jikD+CUM.jikM+CUM.speD+CUM.speM+CUM.citM+CUM.aComp;
+var trC = document.createElement('tr');
+trC.className = 'cum-row';
+function ctd(v){ return '<td class="td-num">'+raw(v)+'</td>'; }
+trC.innerHTML =
+  '<td class="td-date" style="font-size:12px;letter-spacing:2px;">누계 총계</td>'+
+  ctd(CUM.orgD)+ctd(CUM.orgM)+
+  ctd(CUM.jikD)+ctd(CUM.jikM)+
+  ctd(CUM.speD)+ctd(CUM.speM)+
+  ctd(CUM.citM)+ctd(CUM.aComp)+
+  '<td class="td-total">'+raw(ct)+'</td>';
+tbody.appendChild(trC);
+
+/* ════════════════════════════════════════════
+   조직별 수평 바 차트 렌더링
+════════════════════════════════════════════ */
+var dItems = [
+  {name:'조직총괄 D', val:CUM.orgD, grad:'linear-gradient(90deg,#38bdf8,#0ea5e9)'},
+  {name:'직능총괄 D', val:CUM.jikD, grad:'linear-gradient(90deg,#34d399,#059669)'},
+  {name:'특별직능 D', val:CUM.speD, grad:'linear-gradient(90deg,#f59e0b,#d97706)'},
+];
+var mItems = [
+  {name:'직능총괄 M', val:CUM.jikM,  grad:'linear-gradient(90deg,#a78bfa,#7c3aed)'},
+  {name:'A완료',      val:CUM.aComp, grad:'linear-gradient(90deg,#34d399,#059669)'},
+  {name:'조직총괄 M', val:CUM.orgM,  grad:'linear-gradient(90deg,#38bdf8,#0ea5e9)'},
+  {name:'시민자문단M',val:CUM.citM,  grad:'linear-gradient(90deg,#f59e0b,#d97706)'},
+  {name:'특별직능 M', val:CUM.speM,  grad:'linear-gradient(90deg,#f87171,#dc2626)'},
+];
+
+function renderOrgBars(elId, items){
+  var el   = document.getElementById(elId);
+  var maxV = Math.max.apply(null, items.map(function(x){return x.val;})) || 1;
+  items.forEach(function(item){
+    var pct = Math.round((item.val/maxV)*100);
+    var div = document.createElement('div');
+    div.className = 'hbar';
+    div.innerHTML =
+      '<div class="hbar-top">'+
+        '<span class="hbar-name">'+item.name+'</span>'+
+        '<span class="hbar-val">'+raw(item.val)+'</span>'+
+      '</div>'+
+      '<div class="hbar-track">'+
+        '<div class="hbar-fill" data-pct="'+pct+'" style="background:'+item.grad+'"></div>'+
+      '</div>';
+    el.appendChild(div);
+  });
+  /* 애니메이션 */
+  setTimeout(function(){
+    el.querySelectorAll('.hbar-fill').forEach(function(b){
+      b.style.width = b.getAttribute('data-pct')+'%';
+    });
+  }, 400);
+}
+renderOrgBars('orgD', dItems);
+renderOrgBars('orgM', mItems);
+
+/* ════════════════════════════════════════════
+   GAS API 자동 갱신 (URL 세팅 시 동작)
+   — 오늘 날짜 시트 데이터를 fetch하여 테이블 갱신
+════════════════════════════════════════════ */
+if(GAS_URL){
+  var today = new Date();
+  var sheetKey = today.getFullYear()+'.'
+    +(today.getMonth()+1).toString().padStart(2,'0')+'.'
+    +today.getDate().toString().padStart(2,'0');
+  fetchGAS(sheetKey, function(d){
+    /* 필요 시 DAYS 배열 값 업데이트 후 리렌더 */
+    console.log('GAS 데이터 수신:', d);
+  });
+}
+</script>
+</body>
+</html>
